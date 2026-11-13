@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Update a Live KDP book's 7 keywords and republish. Usage: kw_update.py <ID> <kw0>..<kw6>"""
 import sys, json, time
-sys.path.insert(0, "/tmp")
 from cdp_rw import CDP
 
 bid = sys.argv[1]

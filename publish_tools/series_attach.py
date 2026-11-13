@@ -2,7 +2,6 @@
 """Attach a Live KDP book to the existing series via the /details modal flow.
 Usage: series_attach.py <book_id>"""
 import sys, json, time
-sys.path.insert(0, "/tmp")
 from cdp_rw import CDP
 
 bid = sys.argv[1]

@@ -5,6 +5,7 @@ then removing cells per difficulty level. Defaults to 100 puzzles at mixed
 difficulty (40 easy, 35 medium, 25 hard), one per page, solutions at the back."""
 from __future__ import annotations
 import argparse, json, os, random
+from font_support import font_path
 from reportlab.pdfgen import canvas
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import letter
@@ -17,9 +18,9 @@ MARGIN = 54
 SudokuGrid = list[list[int]]
 
 FONTS = {
-    "Sans":  "/System/Library/Fonts/Supplemental/Arial.ttf",
-    "SansB": "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-    "MonoB": "/System/Library/Fonts/Supplemental/Courier New Bold.ttf",
+    "Sans":  font_path("Arial.ttf"),
+    "SansB": font_path("Arial Bold.ttf"),
+    "MonoB": font_path("Courier New Bold.ttf"),
 }
 
 
@@ -432,7 +433,7 @@ def main() -> None:
 
     also_from = []
     if a.also_from and os.path.exists(a.also_from):
-        also_from = json.load(open(a.also_from))
+        also_from = json.load(open(a.also_from, encoding="utf-8"))
 
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     c = canvas.Canvas(a.out, pagesize=letter)

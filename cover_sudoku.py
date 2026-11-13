@@ -4,6 +4,7 @@ is a real, valid partially-filled Sudoku grid instead of a word-search grid.
 2550x3300 at 300 DPI -- feed it to KDP's Cover Creator, which builds the back
 and spine."""
 import argparse, os
+from font_support import font_path
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 2550, 3300
@@ -17,11 +18,11 @@ PALETTE = {  # calm blue/navy — deliberately distinct from the word-search lin
     "cell":   (252, 253, 255),
 }
 
-ARIALB = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
-ARIAL = "/System/Library/Fonts/Supplemental/Arial.ttf"
-GEORGIA = "/System/Library/Fonts/Supplemental/Georgia Bold.ttf"
-IMPACT = "/System/Library/Fonts/Supplemental/Impact.ttf"
-MONO = "/System/Library/Fonts/Supplemental/Courier New Bold.ttf"
+ARIALB = font_path("Arial Bold.ttf")
+ARIAL = font_path("Arial.ttf")
+GEORGIA = font_path("Georgia Bold.ttf")
+IMPACT = font_path("Impact.ttf")
+MONO = font_path("Courier New Bold.ttf")
 
 # A real, valid solved Sudoku grid (the classic). We show a subset as "givens".
 SOLVED = [
@@ -152,12 +153,17 @@ def main():
     title_rest = a.title.upper()
     if title_rest.startswith("LARGE PRINT "):
         title_rest = title_rest[len("LARGE PRINT "):]
-    tf = f(GEORGIA, 230)
+    title_size = 96
+    for candidate in (230, 200, 174, 150, 128, 110, 96):
+        if len(wrap(d, title_rest, f(GEORGIA, candidate), W - 2 * (m + 90))) <= 2:
+            title_size = candidate
+            break
+    tf = f(GEORGIA, title_size)
     y = by1 + 70
     for ln in wrap(d, title_rest, tf, W - 2 * (m + 90)):
         tw = d.textlength(ln, font=tf)
         d.text(((W - tw) / 2, y), ln, font=tf, fill=P["deep"])
-        y += 250
+        y += int(title_size * 1.1)
 
     # divider
     y += 6
@@ -195,7 +201,7 @@ def main():
         d.text(((W - aw) / 2, H - 290), a.author, font=af, fill=P["deep"])
 
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
-    img.save(a.out, "PNG")
+    img.save(a.out, "PNG", dpi=(300, 300))
     print(f"DONE -> {a.out}  ({W}x{H})")
 
 

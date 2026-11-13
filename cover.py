@@ -5,6 +5,7 @@ The hero is a real solved grid with the theme words highlighted, so the
 cover shows what's actually inside rather than generic clip art. Theme
 silhouettes per niche."""
 import argparse, os, random
+from font_support import font_path
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 2550, 3300
@@ -26,11 +27,11 @@ PALETTES = {
     "retro-travel-and-landmarks": {"bg": (240, 230, 210), "accent": (176, 116, 62), "deep": (74, 52, 34), "mute": (140, 116, 90), "hi": (255, 200, 74)},
 }
 
-ARIALB = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
-ARIAL = "/System/Library/Fonts/Supplemental/Arial.ttf"
-GEORGIA = "/System/Library/Fonts/Supplemental/Georgia Bold.ttf"
-IMPACT = "/System/Library/Fonts/Supplemental/Impact.ttf"
-MONO = "/System/Library/Fonts/Supplemental/Courier New Bold.ttf"
+ARIALB = font_path("Arial Bold.ttf")
+ARIAL = font_path("Arial.ttf")
+GEORGIA = font_path("Georgia Bold.ttf")
+IMPACT = font_path("Impact.ttf")
+MONO = font_path("Courier New Bold.ttf")
 
 
 def f(path, size):
@@ -418,7 +419,7 @@ def main():
         d.text(((W - aw) / 2, H - 280), a.author, font=af, fill=deep)
 
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
-    img.save(a.out, "PNG")
+    img.save(a.out, "PNG", dpi=(300, 300))
     print(f"DONE -> {a.out}  ({W}x{H}, palette={a.palette}, theme={theme})")
 
 

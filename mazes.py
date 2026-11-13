@@ -5,6 +5,7 @@ at the back."""
 from __future__ import annotations
 import argparse, json, os, random
 from collections import deque
+from font_support import font_path
 from reportlab.pdfgen import canvas
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import letter
@@ -14,8 +15,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 PAGE_W, PAGE_H = letter
 MARGIN = 54
 FONTS = {
-    "Sans":  "/System/Library/Fonts/Supplemental/Arial.ttf",
-    "SansB": "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "Sans":  font_path("Arial.ttf"),
+    "SansB": font_path("Arial Bold.ttf"),
 }
 OPP = {"N": "S", "S": "N", "E": "W", "W": "E"}
 DC = {"N": (0, -1), "S": (0, 1), "E": (1, 0), "W": (-1, 0)}  # r grows downward
@@ -268,7 +269,7 @@ def main() -> None:
         path = solve(walls, n, n)
         items.append((i, d, n, walls, path))
 
-    also = json.load(open(a.also_from)) if a.also_from and os.path.exists(a.also_from) else []
+    also = json.load(open(a.also_from, encoding="utf-8")) if a.also_from and os.path.exists(a.also_from) else []
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     c = canvas.Canvas(a.out, pagesize=letter)
     c.setTitle(a.title); c.setAuthor(a.author)

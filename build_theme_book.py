@@ -21,7 +21,7 @@ import subprocess
 import sys
 
 KDP = os.path.dirname(os.path.abspath(__file__))
-PY = "/usr/bin/python3"
+PY = sys.executable
 IMPRINT = "Evergreen Puzzle Press"          # brand — back cover only
 PRESS_FLAG = "evergreen puzzle press"       # must NOT be the /Author
 
@@ -49,7 +49,7 @@ def main():
     a = ap.parse_args()
 
     theme_path = a.theme if os.path.isabs(a.theme) else os.path.join(KDP, a.theme)
-    data = json.load(open(theme_path))
+    data = json.load(open(theme_path, encoding="utf-8"))
     title = data["title"]
     subtitle = data.get("subtitle", "")
     author = data.get("author", "").strip()

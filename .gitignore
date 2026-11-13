@@ -7,3 +7,6 @@ out/
 *.png
 !docs/*.png
 .pytest_cache/
+venv/
+.venv/
+kdp-chrome/

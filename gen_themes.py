@@ -11,7 +11,7 @@ stronger model via the llm shim. The published nature/food/animals themes
 were hand-curated rather than taken raw from here. Needs Ollama running."""
 import argparse, json, os, re, sys, urllib.request
 
-OLLAMA, MODEL = "http://127.0.0.1:11434/api/generate", "qwen2.5:3b"
+OLLAMA, MODEL = "http://127.0.0.1:11434/api/generate", os.environ.get("OLLAMA_MODEL", "qwen2.5:3b")
 MINLEN, MAXLEN, WANT, MINKEEP = 3, 13, 14, 10
 
 
@@ -45,7 +45,7 @@ def main():
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
 
-    spec = json.load(open(a.spec))
+    spec = json.load(open(a.spec, encoding="utf-8"))
     puzzles = []
     for name in spec["themes"]:
         words = []
@@ -64,6 +64,8 @@ def main():
         "author": spec.get("author", ""),
         "palette": spec.get("palette", "nature"),
         "puzzles": puzzles,
+        "ai_generated": True,
+        "generation": {"provider": "ollama", "model": MODEL},
     }
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     json.dump(book, open(a.out, "w"), indent=2)

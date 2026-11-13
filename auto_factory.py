@@ -11,7 +11,7 @@ the rotation. See com.evergreen.kdpfactory.plist for the launchd schedule."""
 import os, re, csv, sys, subprocess, datetime
 
 KDP = os.path.dirname(os.path.abspath(__file__))
-PY = "/usr/bin/python3"
+PY = sys.executable
 AUTO = os.path.join(KDP, "out", "auto")
 AUTHOR = "E. P. Greenwood"
 

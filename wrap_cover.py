@@ -4,8 +4,9 @@ PDF. Width is trim_w*2 + spine + bleed*2, height is trim_h + bleed*2; spine
 width follows KDP's white-paper B&W formula (pages * 0.002252in), with a
 0.125in bleed on all outer edges. Upload the result via KDP's "upload a cover
 you already have" option."""
-import argparse, os, textwrap
+import argparse, os, textwrap, json
 from PIL import Image, ImageDraw, ImageFont
+from font_support import font_path
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 
@@ -22,9 +23,12 @@ PALETTES = {
     "beach-vacation": {"bg": (250, 243, 228), "accent": (40, 138, 158), "deep": (16, 54, 78), "mute": (104, 128, 142)},
 }
 
-ARIALB = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
-ARIAL = "/System/Library/Fonts/Supplemental/Arial.ttf"
-GEORGIA = "/System/Library/Fonts/Supplemental/Georgia Bold.ttf"
+from cover import PALETTES as WORDSEARCH_PALETTES
+PALETTES.update(WORDSEARCH_PALETTES)
+
+ARIALB = font_path("Arial Bold.ttf")
+ARIAL = font_path("Arial.ttf")
+GEORGIA = font_path("Georgia Bold.ttf")
 
 TRIM_W, TRIM_H = 8.5, 11.0
 BLEED = 0.125
@@ -49,6 +53,7 @@ def main():
     ap.add_argument("--author", default="Evergreen Puzzle Press")
     ap.add_argument("--back", required=True, help="back cover blurb text")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--design", help="Studio project JSON with custom colors")
     a = ap.parse_args()
 
     spine_in = a.pages * SPINE_FACTOR
@@ -62,6 +67,11 @@ def main():
     trim_h_px = int(round(TRIM_H * DPI))
 
     P = PALETTES.get(a.palette, PALETTES["nature"])
+    if a.design:
+        from PIL import ImageColor
+        with open(a.design, encoding="utf-8") as project:
+            design = json.load(project)["design"]
+        P = {key: ImageColor.getrgb(design[source]) for key, source in (("bg","bg"),("accent","accent"),("deep","ink"),("mute","accent"))}
     bg, accent, deep, mute = P["bg"], P["accent"], P["deep"], P["mute"]
 
     img = Image.new("RGB", (full_w_px, full_h_px), bg)

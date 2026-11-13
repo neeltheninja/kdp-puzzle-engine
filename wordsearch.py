@@ -9,6 +9,7 @@ solutions. KDP needs a separate cover, either from their free Cover Creator
 or generated separately here."""
 from __future__ import annotations
 import argparse, json, math, os, random, string
+from font_support import font_path
 from reportlab.pdfgen import canvas
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import letter
@@ -24,9 +25,9 @@ Cell = tuple[int, int]
 Grid = list[list[str]]
 
 FONTS = {
-    "Sans":  "/System/Library/Fonts/Supplemental/Arial.ttf",
-    "SansB": "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-    "MonoB": "/System/Library/Fonts/Supplemental/Courier New Bold.ttf",
+    "Sans":  font_path("Arial.ttf"),
+    "SansB": font_path("Arial Bold.ttf"),
+    "MonoB": font_path("Courier New Bold.ttf"),
 }
 
 
@@ -54,23 +55,29 @@ def _try_place(grid: Grid, word: str, N: int) -> list[Cell] | None:
 
 
 def generate_puzzle(words: list[str], N: int = GRID_N) -> tuple[Grid, list[list[Cell]], list[str]]:
-    grid: Grid = [["" for _ in range(N)] for _ in range(N)]
-    placements: list[list[Cell]] = []
-    placed: list[str] = []
-    for w in sorted(words, key=len, reverse=True):
-        cells = None
-        for _ in range(500):
-            cells = _try_place(grid, w, N)
-            if cells:
+    if N < 1 or any(not word or len(word) > N for word in words):
+        raise ValueError("Every word must fit the grid.")
+    for _ in range(12):
+        grid: Grid = [["" for _ in range(N)] for _ in range(N)]
+        placements: list[list[Cell]] = []
+        placed: list[str] = []
+        for word in sorted(dict.fromkeys(words), key=len, reverse=True):
+            cells = None
+            for _ in range(500):
+                cells = _try_place(grid, word, N)
+                if cells:
+                    break
+            if not cells:
                 break
-        if cells:
             placements.append(cells)
-            placed.append(w)
-    for r in range(N):
-        for c in range(N):
-            if not grid[r][c]:
-                grid[r][c] = random.choice(string.ascii_uppercase)
-    return grid, placements, placed
+            placed.append(word)
+        else:
+            for row in grid:
+                for column, value in enumerate(row):
+                    if not value:
+                        row[column] = random.choice(string.ascii_uppercase)
+            return grid, placements, placed
+    raise ValueError("Could not fit every word. Reduce the word list or choose a different seed.")
 
 
 # ---------------- drawing helpers ----------------
@@ -376,7 +383,7 @@ def main() -> None:
     a = ap.parse_args()
 
     random.seed(a.seed)
-    data = json.load(open(a.themes))
+    data = json.load(open(a.themes, encoding="utf-8"))
     title = a.title or data.get("title", "Word Search")
     subtitle = a.subtitle or data.get("subtitle", "")
     author = a.author or data.get("author", "")
