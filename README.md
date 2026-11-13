@@ -1,8 +1,10 @@
 # KDP Puzzle Engine
 
-[![CI](https://github.com/vijaxx/kdp-puzzle-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/vijaxx/kdp-puzzle-engine/actions/workflows/ci.yml)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-GitHub_Pages-brightgreen)](https://neeltheninja.github.io/kdp-puzzle-engine/)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+> 🚀 **Live Studio Web App**: [https://neeltheninja.github.io/kdp-puzzle-engine/](https://neeltheninja.github.io/kdp-puzzle-engine/)
 
 Generates print-ready, large-print puzzle books — word search, Sudoku, and mazes — as camera-ready PDFs for Amazon KDP. Swap in a themed word list and it produces a complete new book: interior PDF, cover, and back-cover wrap, laid out to KDP's print specs.
 
