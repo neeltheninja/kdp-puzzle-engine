@@ -13,11 +13,227 @@ try {
 if (location.hash.includes('token=')) history.replaceState(null, '', location.pathname);
 let toastTimer, previewTimer, previewController, jobSignature = '';
 
+function createRNG(seed) {
+  let s = Number(seed) || 7;
+  return function() {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+function clientWordSearch(words, size = 15, seed = 7) {
+  const rnd = createRNG(seed);
+  const DIRS = [[0,1],[1,0],[1,1],[1,-1],[-1,1],[-1,-1],[-1,0],[0,-1]];
+  const clean = (words || []).map(w => String(w).toUpperCase().replace(/[^A-Z]/g, '')).filter(w => w && w.length <= size);
+  const sorted = [...new Set(clean)].sort((a,b) => b.length - a.length);
+  let grid = Array.from({length: size}, () => Array(size).fill(''));
+  let paths = [];
+  let placed = [];
+  for (const word of sorted) {
+    for (let attempt = 0; attempt < 500; attempt++) {
+      const [dr, dc] = DIRS[Math.floor(rnd() * DIRS.length)];
+      const r = Math.floor(rnd() * size);
+      const c = Math.floor(rnd() * size);
+      let cells = [];
+      let ok = true;
+      for (let k = 0; k < word.length; k++) {
+        const rr = r + dr * k, cc = c + dc * k;
+        if (rr < 0 || rr >= size || cc < 0 || cc >= size) { ok = false; break; }
+        const cur = grid[rr][cc];
+        if (cur && cur !== word[k]) { ok = false; break; }
+        cells.push([rr, cc]);
+      }
+      if (ok) {
+        for (let k = 0; k < word.length; k++) grid[cells[k][0]][cells[k][1]] = word[k];
+        paths.push(cells); placed.push(word); break;
+      }
+    }
+  }
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (!grid[r][c]) grid[r][c] = letters[Math.floor(rnd() * letters.length)];
+    }
+  }
+  return { grid, paths, words: placed };
+}
+
+function clientSudoku(seed = 7, profile = 'mixed') {
+  const rnd = createRNG(seed);
+  const BASE = [
+    [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    [4, 5, 6, 7, 8, 9, 1, 2, 3],
+    [7, 8, 9, 1, 2, 3, 4, 5, 6],
+    [2, 3, 4, 5, 6, 7, 8, 9, 1],
+    [5, 6, 7, 8, 9, 1, 2, 3, 4],
+    [8, 9, 1, 2, 3, 4, 5, 6, 7],
+    [3, 4, 5, 6, 7, 8, 9, 1, 2],
+    [6, 7, 8, 9, 1, 2, 3, 4, 5],
+    [9, 1, 2, 3, 4, 5, 6, 7, 8],
+  ];
+  const digits = [1,2,3,4,5,6,7,8,9];
+  for (let i = digits.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [digits[i], digits[j]] = [digits[j], digits[i]];
+  }
+  let solution = BASE.map(row => row.map(v => digits[v - 1]));
+  for (let band = 0; band < 3; band++) {
+    const rIndices = [0, 1, 2].sort(() => rnd() - 0.5);
+    const bandRows = [solution[band*3], solution[band*3+1], solution[band*3+2]];
+    for (let i = 0; i < 3; i++) solution[band*3 + i] = bandRows[rIndices[i]];
+  }
+  for (let stack = 0; stack < 3; stack++) {
+    const cIndices = [0, 1, 2].sort(() => rnd() - 0.5);
+    for (let r = 0; r < 9; r++) {
+      const orig = [solution[r][stack*3], solution[r][stack*3+1], solution[r][stack*3+2]];
+      for (let i = 0; i < 3; i++) solution[r][stack*3 + i] = orig[cIndices[i]];
+    }
+  }
+  const blanksTarget = {easy: 36, hard: 52}[profile] || 44;
+  let puzzle = solution.map(row => [...row]);
+  const coords = [];
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) coords.push([r, c]);
+  coords.sort(() => rnd() - 0.5);
+  for (let i = 0; i < blanksTarget && i < coords.length; i++) {
+    const [r, c] = coords[i];
+    puzzle[r][c] = 0;
+  }
+  return { grid: puzzle, solution };
+}
+
+function clientMaze(size = 15, seed = 7) {
+  const rnd = createRNG(seed);
+  const wallsMap = {};
+  for (let x = 0; x < size; x++) for (let y = 0; y < size; y++) wallsMap[x + ',' + y] = new Set(['N','E','S','W']);
+  const visited = new Set();
+  const stack = [[0, 0]];
+  visited.add('0,0');
+  const dirs = [{d:'N',opp:'S',dx:0,dy:-1},{d:'S',opp:'N',dx:0,dy:1},{d:'E',opp:'W',dx:1,dy:0},{d:'W',opp:'E',dx:-1,dy:0}];
+  while (stack.length > 0) {
+    const [cx, cy] = stack[stack.length - 1];
+    const neighbors = [];
+    for (const {d, opp, dx, dy} of dirs) {
+      const nx = cx + dx, ny = cy + dy;
+      if (nx >= 0 && nx < size && ny >= 0 && ny < size && !visited.has(nx + ',' + ny)) neighbors.push({nx, ny, d, opp});
+    }
+    if (neighbors.length > 0) {
+      const {nx, ny, d, opp} = neighbors[Math.floor(rnd() * neighbors.length)];
+      wallsMap[cx + ',' + cy].delete(d); wallsMap[nx + ',' + ny].delete(opp);
+      visited.add(nx + ',' + ny); stack.push([nx, ny]);
+    } else {
+      stack.pop();
+    }
+  }
+  const walls = [];
+  for (let x = 0; x < size; x++) for (let y = 0; y < size; y++) walls.push([x, y, Array.from(wallsMap[x + ',' + y]).sort()]);
+  const parent = {}, queue = [[0, 0]], seenPath = new Set(['0,0']);
+  while (queue.length > 0) {
+    const [cx, cy] = queue.shift();
+    if (cx === size - 1 && cy === size - 1) break;
+    for (const {d, dx, dy} of dirs) {
+      if (!wallsMap[cx + ',' + cy].has(d)) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx >= 0 && nx < size && ny >= 0 && ny < size && !seenPath.has(nx + ',' + ny)) {
+          seenPath.add(nx + ',' + ny); parent[nx + ',' + ny] = [cx, cy]; queue.push([nx, ny]);
+        }
+      }
+    }
+  }
+  const path = [];
+  let curr = [size - 1, size - 1];
+  while (curr) { path.unshift(curr); if (curr[0] === 0 && curr[1] === 0) break; curr = parent[curr[0] + ',' + curr[1]]; }
+  return { size, walls, path };
+}
+
+async function staticApi(path, data) {
+  const cleanPath = path.split('?')[0];
+  if (cleanPath === 'bootstrap') {
+    const res = await fetch('./data/bootstrap.json');
+    return await res.json();
+  }
+  if (cleanPath === 'topics') {
+    const res = await fetch('./data/topics.json');
+    return await res.json();
+  }
+  if (cleanPath === 'theme') {
+    const id = new URLSearchParams(path.split('?')[1] || '').get('id') || 'nature.json';
+    const res = await fetch('./themes/' + id);
+    return await res.json();
+  }
+  if (cleanPath === 'preview') {
+    const kind = data?.kind || 'wordsearch';
+    const seed = Number(data?.seed || 7);
+    if (kind === 'wordsearch') {
+      let theme = data?.theme_data;
+      if (!theme && data?.theme) {
+        try {
+          const res = await fetch('./themes/' + data.theme);
+          theme = await res.json();
+        } catch (_) {}
+      }
+      const idx = data?.index || 0;
+      const puzzle = theme?.puzzles?.[idx] || {name: 'Word Search', words: ['EVERGREEN','PUZZLE','FOREST','NATURE','HARMONY']};
+      const ws = clientWordSearch(puzzle.words, data?.design?.grid_size || 15, seed + idx);
+      return { kind, name: puzzle.name, grid: ws.grid, paths: ws.paths, words: ws.words };
+    }
+    if (kind === 'sudoku') {
+      const sud = clientSudoku(seed, data?.profile || 'mixed');
+      return { kind, name: 'Sudoku', grid: sud.grid, solution: sud.solution };
+    }
+    if (kind === 'maze') {
+      const difficulty = data?.profile || 'mixed';
+      const n = {easy: 11, mixed: 15, hard: 19}[difficulty] || 15;
+      const mz = clientMaze(n, seed);
+      return { kind, name: 'Maze', size: mz.size, walls: mz.walls, path: mz.path };
+    }
+  }
+  if (cleanPath === 'jobs') {
+    if (data) {
+      return {
+        id: 'preview-' + Date.now(),
+        title: data.title || 'Online Preview Book',
+        status: 'completed',
+        stage: 'Client-side preview ready',
+        progress: 100,
+        result: { message: 'Running on GitHub Pages. To generate full 300 DPI Amazon KDP interior & wrap cover PDFs, run "python studio.py" locally.' }
+      };
+    }
+    return [];
+  }
+  if (cleanPath === 'connections') return { ollama: { connected: false }, chrome: { connected: false } };
+  if (cleanPath === 'ai-status') return {};
+  if (cleanPath === 'books') return [];
+  if (cleanPath === 'assets') return [];
+  if (cleanPath === 'design-validate') return data?.design || {};
+  if (cleanPath === 'compose') {
+    const ids = new Set(data?.ids || []);
+    try {
+      const res = await fetch('./data/topics.json');
+      const allTopics = await res.json();
+      const selected = allTopics.filter(t => ids.has(t.id));
+      return {
+        title: 'Curated Topic Collection',
+        subtitle: 'Hand-picked puzzles for curious minds',
+        author: 'E. P. Greenwood',
+        puzzles: selected.map(t => ({name: t.name, words: t.words || ['WORD','SEARCH']}))
+      };
+    } catch (_) {}
+  }
+  return {};
+}
+
 async function api(path, data, signal) {
-  const response = await fetch('/api/' + path, {method:data === undefined ? 'GET':'POST', headers:{'Content-Type':'application/json', ...(token ? {Authorization:'Bearer ' + token} : {})}, ...(data === undefined ? {} : {body:JSON.stringify(data)}), signal});
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'The operation could not be completed.');
-  return result;
+  try {
+    const response = await fetch('/api/' + path, {method:data === undefined ? 'GET':'POST', headers:{'Content-Type':'application/json', ...(token ? {Authorization:'Bearer ' + token} : {})}, ...(data === undefined ? {} : {body:JSON.stringify(data)}), signal});
+    if (response.ok) return await response.json();
+    if (response.status !== 404 && response.status !== 405) {
+      const result = await response.json();
+      throw new Error(result.error || 'The operation could not be completed.');
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') throw error;
+  }
+  return await staticApi(path, data);
 }
 function toast(message, error = false) {
   const element = $('#toast');
@@ -127,9 +343,10 @@ on('#build-form', 'submit', async event => {
   try { await queue({action:'build', ...config()}); } finally { button.disabled = false; }
 });
 async function queue(data) {
+  const isOnlinePreview = location.hostname.endsWith('github.io') || !location.port;
   const job = await api('jobs', data);
   state.jobs.unshift(job); renderJobs(); $('#jobs-dialog').showModal();
-  toast('Added to your workshop. You can keep creating.');
+  toast(isOnlinePreview ? 'Preview build logged. Run "python studio.py" locally for real 300 DPI PDFs.' : 'Added to your workshop. You can keep creating.');
 }
 
 function schedulePreview() {
@@ -336,8 +553,18 @@ async function pollJobs(){
     let completed=false;
     for(const job of jobs){if(previous.has(job.id)&&['queued','running'].includes(previous.get(job.id))&&!['queued','running'].includes(job.status)){completed=true;toast(job.status==='completed'?`${job.title}: complete.`:job.status==='cancelled'?'Job cancelled.':`${job.title}: needs attention.`,job.status==='failed');}}
     if(completed){await Promise.all([refreshBooks(),refreshCatalog()]);window.dispatchEvent(new Event('studio-artwork'));}
-    $('#connection-label').textContent='Your engine is connected';$('#connection-dot').style.background='#74995c';
-  }catch(error){$('#connection-label').textContent='Engine disconnected';$('#connection-dot').style.background='#b67c55';}
+    if (location.hostname.endsWith('github.io') || !location.port) {
+      $('#connection-label').textContent='GitHub Pages Preview';$('#connection-dot').style.background='#74995c';
+    } else {
+      $('#connection-label').textContent='Your engine is connected';$('#connection-dot').style.background='#74995c';
+    }
+  }catch(error){
+    if (location.hostname.endsWith('github.io') || !location.port) {
+      $('#connection-label').textContent='GitHub Pages Preview';$('#connection-dot').style.background='#74995c';
+    } else {
+      $('#connection-label').textContent='Engine disconnected';$('#connection-dot').style.background='#b67c55';
+    }
+  }
   setTimeout(pollJobs,state.jobs.some(job=>['queued','running'].includes(job.status))?1400:6000);
 }
 async function start(){
